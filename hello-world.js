@@ -53,7 +53,7 @@ app.get('/students/:id', async (req, res) => {
 app.post('/students', async (req, res) => {
   console.log(req.body);
 
-  const students = await prisma.student.create({ data: req.body });
+  const students = await prisma.student.create({ data: { ...req.body, grade: 'FRESHMAN' } });
   res.json(students);
 });
 
