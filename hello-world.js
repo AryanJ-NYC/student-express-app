@@ -2,7 +2,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const { clerkMiddleware, requireAuth, getAuth } = require('@clerk/express');
+const { clerkMiddleware, getAuth } = require('@clerk/express');
 
 const app = express();
 app.use(cookieParser()); // parse cookies
@@ -66,7 +66,9 @@ app.post('/login', async (req, res) => {
   }
 
   const signInToken = await clerkClient.signInTokens.createSignInToken({ userId: dbUser.authId });
-  res.cookie('accessToken', signInToken.token, { domain: '.onrender.com' });
+  res.cookie('accessToken', signInToken.token, {
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost',
+  });
 
   res.json(signInToken);
 });
@@ -77,7 +79,9 @@ app.post('/register', async (req, res) => {
   await prisma.user.create({ data: { authId: user.id, email: emailAddress.toLowerCase() } });
 
   const signInToken = await clerkClient.signInTokens.createSignInToken({ userId: user.id });
-  res.cookie('accessToken', signInToken.token, { domain: '.onrender.com' });
+  res.cookie('accessToken', signInToken.token, {
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost',
+  });
   res.json(signInToken);
 });
 
