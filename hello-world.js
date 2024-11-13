@@ -41,9 +41,7 @@ app.get('/students', async (req, res) => {
 app.get('/students/:id', async (req, res) => {
   // id exists in the request
   const id = req.params.id;
-  console.log(id);
 
-  // TODO: studentList is no longer a thing, let's fix
   // find student with matching ID and respond with the student
   const student = await prisma.student.findUnique({
     select: { sId: true },
@@ -68,7 +66,7 @@ app.post('/login', async (req, res) => {
   }
 
   const signInToken = await clerkClient.signInTokens.createSignInToken({ userId: dbUser.authId });
-  res.cookie('accessToken', signInToken.token);
+  res.cookie('accessToken', signInToken.token, { domain: '.onrender.com' });
 
   res.json(signInToken);
 });
@@ -79,7 +77,7 @@ app.post('/register', async (req, res) => {
   await prisma.user.create({ data: { authId: user.id, email: emailAddress.toLowerCase() } });
 
   const signInToken = await clerkClient.signInTokens.createSignInToken({ userId: user.id });
-  res.cookie('accessToken', signInToken.token);
+  res.cookie('accessToken', signInToken.token, { domain: '.onrender.com' });
   res.json(signInToken);
 });
 
