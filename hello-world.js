@@ -58,7 +58,6 @@ app.get('/students/:id', async (req, res) => {
 
 app.post('/login', async (req, res) => {
   const { emailAddress, password } = req.body;
-  console.log({ emailAddress, password });
   const dbUser = await prisma.user.findUnique({ where: { email: emailAddress.toLowerCase() } });
   if (!dbUser) {
     res.status(401).json({ message: 'error logging in' });
