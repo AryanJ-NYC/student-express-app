@@ -23,6 +23,7 @@ app.get('/students', async (req, res) => {
   if (!auth.userId) {
     return res.status(401).json([]);
   }
+
   // instead of only school, generically filter by any property name
   if (req.query) {
     const propertyNames = Object.keys(req.query);
@@ -54,40 +55,28 @@ app.get('/students/:id', async (req, res) => {
   }
 });
 
-app.post('/login', async (req, res) => {
-  const { emailAddress, password } = req.body;
-  const dbUser = await prisma.user.findUnique({ where: { email: emailAddress.toLowerCase() } });
-  if (!dbUser) {
-    res.status(401).json({ message: 'error logging in' });
-  }
-  const { verified } = await clerkClient.users.verifyPassword({ userId: dbUser.authId, password });
-  if (!verified) {
-    res.status(401).json({ message: 'error logging in' });
-  }
-
-  const signInToken = await clerkClient.signInTokens.createSignInToken({ userId: dbUser.authId });
-  res.cookie('accessToken', signInToken.token, {
-    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost',
-  });
-
-  res.json(signInToken);
-});
-
 app.post('/register', async (req, res) => {
   const { emailAddress, password } = req.body;
-  const user = await clerkClient.users.createUser({ emailAddress: [emailAddress], password });
-  await prisma.user.create({ data: { authId: user.id, email: emailAddress.toLowerCase() } });
+  let user;
+  try {
+    user = await clerkClient.users.createUser({ emailAddress: [emailAddress], password });
+  } catch (e) {
+    if (Array.isArray(e.errors)) {
+      return res.status(401).json({ message: e.errors[0].longMessage });
+    } else {
+      console.log(e);
+      return res.status(401).json({ message: 'error registering' });
+    }
+  }
+  try {
+    await prisma.user.create({ data: { authId: user.id, email: emailAddress.toLowerCase() } });
+  } catch (e) {
+    await clerkClient.users.deleteUser(user.id);
+    return res.status(401).json({ message: 'error registering' });
+  }
 
   const signInToken = await clerkClient.signInTokens.createSignInToken({ userId: user.id });
-  res.cookie('accessToken', signInToken.token, {
-    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost',
-  });
   res.json(signInToken);
-});
-
-app.get('/logout', async (req, res) => {
-  res.clearCookie('accessToken');
-  res.json({ message: 'logged out' });
 });
 
 // create a student
